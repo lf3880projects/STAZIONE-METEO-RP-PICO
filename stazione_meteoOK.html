@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>STAZIONE METEO RP PICO</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#111827;
+    color:white;
+}
+
+.header{
+    background:#1f2937;
+    padding:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:0 2px 10px rgba(0,0,0,0.4);
+}
+
+.title{
+    font-size:28px;
+    font-weight:bold;
+}
+
+.linkStorico{
+    color:#60a5fa;
+    text-decoration:none;
+    font-weight:bold;
+    font-size:18px;
+}
+
+.linkStorico:hover{
+    color:#93c5fd;
+    text-decoration:underline;
+}
+
+.online{
+    color:#00ff66;
+    font-weight:bold;
+}
+
+.offline{
+    color:#ff4040;
+    font-weight:bold;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+    padding:20px;
+}
+
+.card{
+    background:#1f2937;
+    border-radius:15px;
+    padding:20px;
+    text-align:center;
+    box-shadow:0 4px 15px rgba(0,0,0,0.3);
+}
+
+.icon{
+    font-size:42px;
+}
+
+.value{
+    font-size:42px;
+    font-weight:bold;
+    margin-top:10px;
+}
+
+.label{
+    color:#b0b8c5;
+    margin-top:8px;
+}
+
+.stats{
+    margin-top:15px;
+    font-size:14px;
+    color:#d1d5db;
+    border-top:1px solid #374151;
+    padding-top:10px;
+}
+
+.stats-label{
+    margin-top:4px;
+    font-size:11px;
+    color:#6b7280;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+}
+
+.footer{
+    text-align:center;
+    color:#9ca3af;
+    padding:20px;
+}
+
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+
+<div class="header">
+
+    <div class="title">
+        STAZIONE METEO RP PICO
+    </div>
+	<a href="storico30.html" class="linkStorico">
+    📈 Medie ultimi 30 giorni
+	</a>
+    <div style="text-align:right;">
+
+        <div id="statusDot" class="online">
+            ● ONLINE
+        </div>
+
+        <div id="lastUpdate"
+             style="font-size:12px;color:#b0b8c5;margin-top:4px;">
+            --
+        </div>
+
+    </div>
+
+</div>
+
+<div class="grid">
+
+<div class="card" style="grid-column: span 2;">
+    <div class="icon">🌡</div>
+    <div id="temp" class="value">--</div>
+    <div class="label">Temperatura</div>
+
+    <div id="tempStats" class="stats">
+        ▼ -- ▲ -- AVG --
+    </div>
+
+    <div style="margin-top:15px;height:180px;">
+        <canvas id="tempChart"></canvas>
+    </div>
+</div>
+
+    <div class="card" style="grid-column: span 2;">
+        <div class="icon">💧</div>
+        <div id="hum" class="value">--</div>
+        <div class="label">Umidità</div>
+        <div id="humStats" class="stats">
+            ▼ -- ▲ -- AVG --
+        </div>
+		
+	<div style="margin-top:15px;height:180px;">
+        <canvas id="humChart"></canvas>
+    </div>	
+    </div>
+
+    <div class="card" style="grid-column: span 2;">
+        <div class="icon">🔵</div>
+        <div id="pres" class="value">--</div>
+        <div class="label">Pressione</div>
+        <div id="presStats" class="stats">
+            ▼ -- ▲ -- AVG --
+        </div>
+		
+	<div style="margin-top:15px;height:180px;">
+		<canvas id="presChart"></canvas>
+	</div>	
+    </div>
+
+    <div class="card" style="grid-column: span 2;">
+        <div class="icon">🧪</div>
+        <div id="voc" class="value">--</div>
+        <div class="label">VOC</div>
+        <div id="vocStats" class="stats">
+            ▼ -- ▲ -- AVG --
+        </div>
+		
+	<div style="margin-top:15px;height:180px;">
+		<canvas id="vocChart"></canvas>
+	</div>
+    </div>
+
+</div>
+
+
+<script>
+
+const channelID = "3482908";
+const readAPI = "808DSNFPXSLRV98F";
+
+let tempChart = null;
+let humChart = null;
+let presChart = null;
+let vocChart = null;
+
+async function aggiornaDati() {
+
+    try {
+
+        const url =
+        `https://api.thingspeak.com/channels/${channelID}/feeds/last.json?api_key=${readAPI}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        document.getElementById("temp").innerHTML =
+            Number(data.field1).toFixed(1) + " °C";
+
+        document.getElementById("pres").innerHTML =
+            Number(data.field2).toFixed(0) + " hPa";
+
+        document.getElementById("hum").innerHTML =
+            Number(data.field3).toFixed(0) + " %";
+
+        document.getElementById("voc").innerHTML =
+            Number(data.field4).toFixed(0);
+
+        document.getElementById("lastUpdate").innerHTML =
+            new Date(data.created_at).toLocaleString("it-IT");
+
+        verificaOnline(data.created_at);
+
+    } catch(err){
+
+        document.getElementById("statusDot").innerHTML =
+            "● OFFLINE";
+
+        document.getElementById("statusDot").className =
+            "offline";
+    }
+}
+
+function verificaOnline(timestamp){
+
+    const ultimo = new Date(timestamp);
+    const adesso = new Date();
+
+    const minuti =
+        (adesso - ultimo) / 60000;
+
+    if(minuti <= 10){
+
+        document.getElementById("statusDot").innerHTML =
+            "● ONLINE";
+
+        document.getElementById("statusDot").className =
+            "online";
+
+    } else {
+
+        document.getElementById("statusDot").innerHTML =
+            "● OFFLINE";
+
+        document.getElementById("statusDot").className =
+            "offline";
+    }
+}
+
+async function aggiornaStatistiche(){
+
+    try{
+
+        const url =
+        `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=300`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        const oggi = new Date();
+
+        const feedsOggi = data.feeds.filter(feed => {
+
+            const d = new Date(feed.created_at);
+
+            return (
+                d.getDate() === oggi.getDate() &&
+                d.getMonth() === oggi.getMonth() &&
+                d.getFullYear() === oggi.getFullYear()
+            );
+        });
+
+        calcolaStats(feedsOggi,"field1","tempStats"," °C",1);
+        calcolaStats(feedsOggi,"field2","presStats","",0);
+        calcolaStats(feedsOggi,"field3","humStats","",0);
+        calcolaStats(feedsOggi,"field4","vocStats","",0);
+
+    } catch(err){
+        console.log(err);
+    }
+}
+
+function calcolaStats(feeds,campo,idElemento,unita,decimali){
+
+    const valori = feeds
+        .map(f => parseFloat(f[campo]))
+        .filter(v => !isNaN(v));
+
+    if(valori.length === 0)
+        return;
+
+    const min = Math.min(...valori);
+    const max = Math.max(...valori);
+
+    const avg =
+        valori.reduce((a,b)=>a+b,0) /
+        valori.length;
+
+    document.getElementById(idElemento).innerHTML =
+		`▼ ${min.toFixed(decimali)}${unita}
+		&nbsp;&nbsp;
+		▲ ${max.toFixed(decimali)}${unita}
+		&nbsp;&nbsp;
+		AVG ${avg.toFixed(decimali)}${unita}
+		<div class="stats-label">Giorno corrente</div>`;
+}
+
+async function aggiornaGraficoTemperatura(){
+
+    try{
+
+        const url =
+        `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=300`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        const oggi = new Date();
+
+        const feedsOggi = data.feeds.filter(feed => {
+
+            const d = new Date(feed.created_at);
+
+            return (
+                d.getDate() === oggi.getDate() &&
+                d.getMonth() === oggi.getMonth() &&
+                d.getFullYear() === oggi.getFullYear()
+            );
+        });
+
+        const labels = feedsOggi.map(f =>
+            new Date(f.created_at).toLocaleTimeString("it-IT",{
+                hour:"2-digit",
+                minute:"2-digit"
+            })
+        );
+
+        const valori = feedsOggi.map(f =>
+            Number(f.field1)
+        );
+
+        if(tempChart){
+            tempChart.destroy();
+        }
+
+		tempChart = new Chart(
+			document.getElementById("tempChart"),
+			{
+				type:"line",
+				data:{
+					labels:labels,
+					datasets:[{
+						data:valori,
+						borderColor:"#4fc3f7",
+						backgroundColor:"rgba(79,195,247,0.2)",
+						tension:0.3
+					}]
+				},
+				options:{
+					responsive:true,
+					maintainAspectRatio:false,
+					plugins:{
+						legend:{
+							display:false
+						}
+					}
+				}
+			}
+		);
+
+    }catch(err){
+        console.log(err);
+    }
+}
+
+async function aggiornaGraficoUmidita(){
+
+    try{
+
+        const url =
+        `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=300`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        const oggi = new Date();
+
+        const feedsOggi = data.feeds.filter(feed => {
+
+            const d = new Date(feed.created_at);
+
+            return (
+                d.getDate() === oggi.getDate() &&
+                d.getMonth() === oggi.getMonth() &&
+                d.getFullYear() === oggi.getFullYear()
+            );
+        });
+
+        const labels = feedsOggi.map(f =>
+            new Date(f.created_at).toLocaleTimeString("it-IT",{
+                hour:"2-digit",
+                minute:"2-digit"
+            })
+        );
+
+        const valori = feedsOggi.map(f =>
+            Number(f.field3)
+        );
+
+        if(humChart){
+            humChart.destroy();
+        }
+
+        humChart = new Chart(
+            document.getElementById("humChart"),
+            {
+                type:"line",
+                data:{
+                    labels:labels,
+                    datasets:[{
+                        data:valori,
+                        borderColor:"#68d391",
+                        backgroundColor:"rgba(104,211,145,0.2)",
+                        tension:0.3
+                    }]
+                },
+                options:{
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    plugins:{
+                        legend:{
+                            display:false
+                        }
+                    }
+                }
+            }
+        );
+
+    }catch(err){
+        console.log(err);
+    }
+}
+
+async function aggiornaGraficoPressione(){
+
+    try{
+
+        const url =
+        `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=300`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        const oggi = new Date();
+
+        const feedsOggi = data.feeds.filter(feed => {
+
+            const d = new Date(feed.created_at);
+
+            return (
+                d.getDate() === oggi.getDate() &&
+                d.getMonth() === oggi.getMonth() &&
+                d.getFullYear() === oggi.getFullYear()
+            );
+        });
+
+        const labels = feedsOggi.map(f =>
+            new Date(f.created_at).toLocaleTimeString("it-IT",{
+                hour:"2-digit",
+                minute:"2-digit"
+            })
+        );
+
+        const valori = feedsOggi.map(f =>
+            Number(f.field2)
+        );
+
+        if(presChart){
+            presChart.destroy();
+        }
+
+		presChart = new Chart(
+			document.getElementById("presChart"),
+			{
+				type:"line",
+				data:{
+					labels:labels,
+					datasets:[{
+						data:valori,
+						borderColor:"#4fc3f7",
+						backgroundColor:"rgba(79,195,247,0.2)",
+						tension:0.3
+					}]
+				},
+				options:{
+					responsive:true,
+					maintainAspectRatio:false,
+					plugins:{
+						legend:{
+							display:false
+						}
+					}
+				}
+			}
+		);
+
+    }catch(err){
+        console.log(err);
+    }
+}
+
+async function aggiornaGraficoVoc(){
+
+    try{
+
+        const url =
+        `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=300`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        const oggi = new Date();
+
+        const feedsOggi = data.feeds.filter(feed => {
+
+            const d = new Date(feed.created_at);
+
+            return (
+                d.getDate() === oggi.getDate() &&
+                d.getMonth() === oggi.getMonth() &&
+                d.getFullYear() === oggi.getFullYear()
+            );
+        });
+
+        const labels = feedsOggi.map(f =>
+            new Date(f.created_at).toLocaleTimeString("it-IT",{
+                hour:"2-digit",
+                minute:"2-digit"
+            })
+        );
+
+        const valori = feedsOggi.map(f =>
+            Number(f.field4)
+        );
+
+        if(vocChart){
+            vocChart.destroy();
+        }
+
+		vocChart = new Chart(
+			document.getElementById("vocChart"),
+			{
+				type:"line",
+				data:{
+					labels:labels,
+					datasets:[{
+						data:valori,
+						borderColor:"#4fc3f7",
+						backgroundColor:"rgba(79,195,247,0.2)",
+						tension:0.3
+					}]
+				},
+				options:{
+					responsive:true,
+					maintainAspectRatio:false,
+					plugins:{
+						legend:{
+							display:false
+						}
+					}
+				}
+			}
+		);
+
+    }catch(err){
+        console.log(err);
+    }
+}
+aggiornaDati();
+aggiornaStatistiche();
+
+aggiornaGraficoTemperatura();
+setInterval(aggiornaGraficoTemperatura,300000);
+
+aggiornaGraficoUmidita();
+setInterval(aggiornaGraficoUmidita,300000);
+
+aggiornaGraficoPressione();
+setInterval(aggiornaGraficoPressione,300000);
+
+aggiornaGraficoVoc();
+setInterval(aggiornaGraficoVoc,300000);
+
+setInterval(aggiornaDati,15000);
+
+/* statistiche giornaliere */
+setInterval(aggiornaStatistiche,300000);
+
+</script>
+
+</body>
+</html>

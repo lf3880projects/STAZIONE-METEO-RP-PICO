@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>STAZIONE METEO RP PICO - Medie ultimi 30 giorni</title>
+
+<style>
+
+body{
+    margin:0;
+    padding:20px;
+    background:#111827;
+    color:white;
+    font-family:Arial,sans-serif;
+}
+
+.header{
+    position:relative;
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.btnTop{
+    position:absolute;
+    right:0;
+    top:10px;
+
+    padding:10px 18px;
+    background:#2563eb;
+    color:white;
+    text-decoration:none;
+    border-radius:8px;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+.btnTop:hover{
+    background:#1d4ed8;
+}
+
+.header{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.header h1{
+    color:#60a5fa;
+    margin-bottom:10px;
+}
+
+.header h2{
+    color:#e5e7eb;
+    font-weight:normal;
+}
+
+.card{
+    max-width:900px;
+    margin:0 auto;
+    background:#1f2937;
+    border-radius:12px;
+    padding:30px;
+    box-shadow:0 0 15px rgba(0,0,0,0.4);
+    text-align:center;
+}
+
+.btn{
+    display:inline-block;
+    margin-top:25px;
+    padding:12px 24px;
+    background:#2563eb;
+    color:white;
+    text-decoration:none;
+    border-radius:8px;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+.btn:hover{
+    background:#1d4ed8;
+}
+
+#temp30Chart{
+    height:300px !important;
+}
+
+#hum30Chart{
+    height:300px !important;
+}
+
+canvas{
+    display:block;
+    width:100% !important;
+}
+
+#press30Chart{
+    height:300px !important;
+}
+
+#voc30Chart{
+    height:300px !important;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+	<a href="stazione_meteoOK.html" class="btnTop">
+		← Tempo Reale
+	</a>
+    <h1>STAZIONE METEO RP PICO</h1>
+    <h2>Medie ultimi 30 giorni</h2>
+</div>
+
+<div class="card">
+
+    <h3>Temperatura media ultimi 30 giorni</h3>
+
+    <canvas id="temp30Chart"></canvas>
+
+    <br>
+
+
+</div>
+
+<div class="card">
+
+    <h3>Umidità media ultimi 30 giorni</h3>
+
+    <canvas id="hum30Chart"></canvas>
+
+</div>
+
+<div class="card">
+
+    <h3>Pressione media ultimi 30 giorni</h3>
+
+    <canvas id="press30Chart"></canvas>
+
+</div>
+
+<div class="card">
+
+    <h3>VOC medio ultimi 30 giorni</h3>
+
+    <canvas id="voc30Chart"></canvas>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+let temp30Chart = null;
+let hum30Chart = null;
+let press30Chart = null;
+let voc30Chart = null;
+
+
+async function aggiornaGraficoTemperatura30Giorni() {
+
+    const url =
+    "https://api.thingspeak.com/channels/3540668/fields/1.json?api_key=399MNC9QFAAE7ULM&results=30";
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    console.log(data);
+
+    const feeds = data.feeds || [];
+
+    const labels = feeds.map(feed => {
+		const d = new Date(feed.created_at);
+		d.setDate(d.getDate() - 1);
+		return d.toLocaleDateString('it-IT');
+});
+
+    const valori = feeds.map(feed =>
+        parseFloat(feed.field1)
+    );
+
+    const canvas = document.getElementById('temp30Chart');
+
+    if (!canvas) {
+        console.error("Canvas temp30Chart non trovato");
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    if (temp30Chart) {
+        temp30Chart.destroy();
+    }
+
+    temp30Chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Temperatura media °C',
+                data: valori,
+                borderColor: '#ff5555',
+                backgroundColor: 'rgba(255,85,85,0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+			plugins: {
+				legend: {
+					display: false
+				}
+			},
+
+            scales: {
+
+                x: {
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: '#374151'
+                    }
+                },
+
+                y: {
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: '#374151'
+                    }
+                }
+
+            }
+        }
+    });
+
+}
+
+async function aggiornaGraficoUmidita30Giorni() {
+
+    const url =
+    "https://api.thingspeak.com/channels/3540668/fields/3.json?api_key=399MNC9QFAAE7ULM&results=30";
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const feeds = data.feeds || [];
+
+    const labels = feeds.map(feed => {
+		const d = new Date(feed.created_at);
+		d.setDate(d.getDate() - 1);
+		return d.toLocaleDateString('it-IT');
+	});
+
+    const valori = feeds.map(feed =>
+        parseFloat(feed.field3)
+    );
+
+    const canvas = document.getElementById('hum30Chart');
+
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    if (hum30Chart) {
+        hum30Chart.destroy();
+    }
+
+    hum30Chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Umidità media %',
+                data: valori,
+                borderColor: '#6ee7a8',
+                backgroundColor: 'rgba(110,231,168,0.20)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+
+            scales: {
+
+                x: {
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: '#374151'
+                    }
+                },
+
+                y: {
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: '#374151'
+                    }
+                }
+
+            }
+        }
+    });
+
+}
+
+
+async function aggiornaGraficoPressione30Giorni() {
+
+    const url =
+    "https://api.thingspeak.com/channels/3540668/fields/2.json?api_key=399MNC9QFAAE7ULM&results=30";
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const feeds = data.feeds || [];
+
+    const labels = feeds.map(feed => {
+		const d = new Date(feed.created_at);
+		d.setDate(d.getDate() - 1);
+		return d.toLocaleDateString('it-IT');
+	});
+
+    const valori = feeds.map(feed =>
+        parseFloat(feed.field2)
+    );
+
+    const canvas = document.getElementById('press30Chart');
+
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    if (press30Chart) {
+        press30Chart.destroy();
+    }
+
+    press30Chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Pressione media hPa',
+                data: valori,
+                borderColor: '#60a5fa',
+                backgroundColor: 'rgba(96,165,250,0.20)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+
+            scales: {
+                x: {
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: '#374151'
+                    }
+                },
+
+                y: {
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: '#374151'
+                    }
+                }
+            }
+        }
+    });
+
+}
+
+async function aggiornaGraficoVOC30Giorni() {
+
+    const url =
+    "https://api.thingspeak.com/channels/3540668/fields/4.json?api_key=399MNC9QFAAE7ULM&results=30";
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const feeds = data.feeds || [];
+
+    const labels = feeds.map(feed => {
+		const d = new Date(feed.created_at);
+		d.setDate(d.getDate() - 1);
+		return d.toLocaleDateString('it-IT');
+	});
+
+    const valori = feeds.map(feed =>
+        parseFloat(feed.field4)
+    );
+
+    const canvas = document.getElementById('voc30Chart');
+
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    if (voc30Chart) {
+        voc30Chart.destroy();
+    }
+
+    voc30Chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'VOC medio',
+                data: valori,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245,158,11,0.20)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+
+            scales: {
+                x: {
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: '#374151'
+                    }
+                },
+
+                y: {
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: '#374151'
+                    }
+                }
+            }
+        }
+    });
+
+}
+
+
+aggiornaGraficoTemperatura30Giorni();
+aggiornaGraficoUmidita30Giorni();
+aggiornaGraficoPressione30Giorni();
+aggiornaGraficoVOC30Giorni();
+
+
+</script>
+
+</body>
+</html>

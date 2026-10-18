@@ -1,0 +1,44 @@
+%% Canale sorgente
+sourceChannelID = 3482908;
+sourceReadAPIKey = '808DSNFPXSLRV98F';
+
+%% Canale DAILY
+dailyChannelID = 3540668;
+dailyWriteAPIKey = 'KQMGO1LCWPV2HK79';
+
+%% Leggi ultime 24 ore
+
+data = thingSpeakRead(sourceChannelID, ...
+    'ReadKey', sourceReadAPIKey, ...
+    'NumDays', 1, ...
+    'OutputFormat', 'table');
+
+%% Controllo
+
+if height(data) == 0
+    disp('Nessun dato disponibile');
+    return;
+end
+
+%% Calcolo medie
+
+tempMedia  = mean(data.Temperatura,'omitnan');
+pressMedia = mean(data.Pressione,'omitnan');
+humMedia   = mean(data.Umidit,'omitnan');
+vocMedia   = mean(data.VOCMQ135,'omitnan');
+
+%% Visualizza
+
+fprintf('Temp media : %.2f\n', tempMedia);
+fprintf('Press media: %.2f\n', pressMedia);
+fprintf('Hum media  : %.2f\n', humMedia);
+fprintf('VOC media  : %.2f\n', vocMedia);
+
+%% Scrivi nel canale DAILY
+
+thingSpeakWrite(dailyChannelID, ...
+    [tempMedia pressMedia humMedia vocMedia], ...
+    'Fields', [1 2 3 4], ...
+    'WriteKey', dailyWriteAPIKey);
+
+disp('Medie scritte nel canale DAILY');
