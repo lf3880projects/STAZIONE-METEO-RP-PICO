@@ -45,8 +45,8 @@ def update_latest_readings():
     return temp, pres, hum, voc
 
 # --- WiFi ---
-SSID = "TIM-29602335"
-PASSWORD = "pFMdelqcpz0kQ020XEYe6fXW"
+SSID = 
+PASSWORD = 
 ledRed.value(1)
 time.sleep(1)
 wlan = network.WLAN(network.STA_IF)
