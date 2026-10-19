@@ -235,7 +235,7 @@ async function calcolaTrend(){
 		// Temperatura confronto con 1 ora prima, 0.5°C soglia
 		// Pressione con 3 ore prima, 1hPa soglia
 		// Umidità confronto con 1 ora prima, 5% soglia
-		// VOC confronto con 1 ora prima, 10punti soglia
+		// VOC confronto con 1 ora prima, 5punti soglia
         const url =
         `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=50`;
 
@@ -268,7 +268,7 @@ async function calcolaTrend(){
             getTrendArrow(
                 parseFloat(ultimo.field4) -
                 parseFloat(oraFa.field4),
-                10
+                5
             );
 
         document.getElementById("temp").innerHTML =
