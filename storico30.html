@@ -1,341 +1,413 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!DOCTYPE html>
+	<html lang="it">
+	<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>STAZIONE METEO RP PICO - Medie ultimi 30 giorni</title>
+	<title>STAZIONE METEO RP PICO - Medie ultimi 30 giorni</title>
 
-<style>
+	<style>
 
-body{
-    margin:0;
-    padding:20px;
-    background:#111827;
-    color:white;
-    font-family:Arial,sans-serif;
-}
+	body{
+		margin:0;
+		padding:20px;
+		background:#111827;
+		color:white;
+		font-family:Arial,sans-serif;
+	}
 
-.header{
-    position:relative;
-    text-align:center;
-    margin-bottom:30px;
-}
+	.header{
+		position:relative;
+		text-align:center;
+		margin-bottom:30px;
+	}
 
-.btnTop{
-    position:absolute;
-    right:0;
-    top:10px;
+	.btnTop{
+		position:absolute;
+		right:0;
+		top:10px;
 
-    padding:10px 18px;
-    background:#2563eb;
-    color:white;
-    text-decoration:none;
-    border-radius:8px;
-    font-weight:bold;
-    transition:0.3s;
-}
+		padding:10px 18px;
+		background:#2563eb;
+		color:white;
+		text-decoration:none;
+		border-radius:8px;
+		font-weight:bold;
+		transition:0.3s;
+	}
 
-.btnTop:hover{
-    background:#1d4ed8;
-}
+	.btnTop:hover{
+		background:#1d4ed8;
+	}
 
-.header{
-    text-align:center;
-    margin-bottom:30px;
-}
+	.header{
+		text-align:center;
+		margin-bottom:30px;
+	}
 
-.header h1{
-    color:#60a5fa;
-    margin-bottom:10px;
-}
+	.header h1{
+		color:#60a5fa;
+		margin-bottom:10px;
+	}
 
-.header h2{
-    color:#e5e7eb;
-    font-weight:normal;
-}
+	.header h2{
+		color:#e5e7eb;
+		font-weight:normal;
+	}
 
-.grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(550px,1fr));
-    gap:20px;
-    max-width:1800px;
-    margin:0 auto;
-}
+	.grid{
+		display:grid;
+		grid-template-columns:repeat(auto-fit,minmax(550px,1fr));
+		gap:20px;
+		max-width:1800px;
+		margin:0 auto;
+	}
 
-.card{
-    background:#1f2937;
-    border-radius:12px;
-    padding:30px;
-    box-shadow:0 0 15px rgba(0,0,0,0.4);
-    text-align:center;
-}
+	.card{
+		background:#1f2937;
+		border-radius:12px;
+		padding:30px;
+		box-shadow:0 0 15px rgba(0,0,0,0.4);
+		text-align:center;
+	}
 
-.btn{
-    display:inline-block;
-    margin-top:25px;
-    padding:12px 24px;
-    background:#2563eb;
-    color:white;
-    text-decoration:none;
-    border-radius:8px;
-    font-weight:bold;
-    transition:0.3s;
-}
+	.infoStats{
+		color:#d1d5db;
+		font-size:14px;
+		margin-bottom:12px;
+		line-height:1.5;
+	}
 
-.btn:hover{
-    background:#1d4ed8;
-}
+	.btn{
+		display:inline-block;
+		margin-top:25px;
+		padding:12px 24px;
+		background:#2563eb;
+		color:white;
+		text-decoration:none;
+		border-radius:8px;
+		font-weight:bold;
+		transition:0.3s;
+	}
 
-#temp30Chart{
-    height:300px !important;
-}
+	.btn:hover{
+		background:#1d4ed8;
+	}
 
-#hum30Chart{
-    height:300px !important;
-}
+	#temp30Chart{
+		height:300px !important;
+	}
 
-canvas{
-    display:block;
-    width:100% !important;
-}
+	#hum30Chart{
+		height:300px !important;
+	}
 
-#press30Chart{
-    height:300px !important;
-}
+	canvas{
+		display:block;
+		width:100% !important;
+	}
 
-#voc30Chart{
-    height:300px !important;
-}
+	#press30Chart{
+		height:300px !important;
+	}
 
-/* Ottimizzazione smartphone */
+	#voc30Chart{
+		height:300px !important;
+	}
 
-@media (max-width: 600px){
+	/* Ottimizzazione smartphone */
 
-    body{
-        padding:10px;
-    }
+	@media (max-width: 600px){
 
-    .header h1{
-        font-size:28px;
-    }
+		body{
+			padding:10px;
+		}
 
-    .header h2{
-        font-size:20px;
-    }
+		.header h1{
+			font-size:28px;
+		}
 
-    .btnTop{
-        position:static;
-        display:inline-block;
-        margin-bottom:15px;
-    }
+		.header h2{
+			font-size:20px;
+		}
 
-    .grid{
-        grid-template-columns:1fr;
-        gap:15px;
-    }
+		.btnTop{
+			position:static;
+			display:inline-block;
+			margin-bottom:15px;
+		}
 
-    .card{
-        padding:15px;
-    }
+		.grid{
+			grid-template-columns:1fr;
+			gap:15px;
+		}
 
-    .card h3{
-        font-size:18px;
-        margin-bottom:15px;
-    }
+		.card{
+			padding:15px;
+		}
 
-    #temp30Chart,
-    #hum30Chart,
-    #press30Chart,
-    #voc30Chart{
-        height:250px !important;
-    }
-}
+		.card h3{
+			font-size:18px;
+			margin-bottom:15px;
+		}
 
-</style>
-</head>
+		#temp30Chart,
+		#hum30Chart,
+		#press30Chart,
+		#voc30Chart{
+			height:250px !important;
+		}
+	}
 
-<body>
+	</style>
+	</head>
 
-<div class="header">
-	<a href="index.html" class="btnTop">
-		← Tempo Reale
-	</a>
-    <h1>STAZIONE METEO RP PICO  (Reggello, Fi)</h1>
-    <h2>Medie ultimi 30 giorni</h2>
-</div>
-<div class="grid">
+	<body>
 
-	<div class="card">
-
-		<h3>Temperatura media ultimi 30 giorni</h3>
-
-		<canvas id="temp30Chart"></canvas>
-
-		<br>
-
-
+	<div class="header">
+		<a href="index.html" class="btnTop">
+			← Tempo Reale
+		</a>
+		<h1>STAZIONE METEO RP PICO  (Reggello, Fi)</h1>
+		<h2>Medie ultimi 30 giorni</h2>
 	</div>
+	<div class="grid">
 
-	<div class="card">
+		<div class="card">
 
-		<h3>Umidità media ultimi 30 giorni</h3>
+		<div class="card">
 
-		<canvas id="hum30Chart"></canvas>
+			<h3>Temperatura media ultimi 30 giorni</h3>
 
+			<div id="temp30Info" class="infoStats"></div>
+
+			<canvas id="temp30Chart"></canvas>
+
+		</div>
+
+		<div class="card">
+
+			<h3>Umidità media ultimi 30 giorni</h3>
+
+			<div id="hum30Info" class="infoStats"></div>
+
+			<canvas id="hum30Chart"></canvas>
+
+		</div>
+
+		<div class="card">
+
+			<h3>Pressione media ultimi 30 giorni</h3>
+
+			<div id="press30Info" class="infoStats"></div>
+
+			<canvas id="press30Chart"></canvas>
+
+		</div>
+
+
+		<div class="card">
+
+			<h3>VOC medio ultimi 30 giorni</h3>
+
+			<div id="voc30Info" class="infoStats"></div>
+
+			<canvas id="voc30Chart"></canvas>
+
+		</div>
+		
 	</div>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-	<div class="card">
+	<script>
 
-		<h3>Pressione media ultimi 30 giorni</h3>
-
-		<canvas id="press30Chart"></canvas>
-
-	</div>
-
-	<div class="card">
-
-		<h3>VOC medio ultimi 30 giorni</h3>
-
-		<canvas id="voc30Chart"></canvas>
-
-	</div>
-	
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script>
-
-const charts = {};
+	const charts = {};
 
 
-async function scaricaStorico30Giorni(){
+	async function scaricaStorico30Giorni(){
 
-    const url =
-        "https://api.thingspeak.com/channels/3540668/feeds.json?api_key=399MNC9QFAAE7ULM&results=30";
+		const url =
+			"https://api.thingspeak.com/channels/3540668/feeds.json?api_key=399MNC9QFAAE7ULM&results=30";
 
-    const response = await fetch(url);
+		const response = await fetch(url);
 
-    return await response.json();
-}
+		return await response.json();
+	}
 
-function aggiornaGrafico30Giorni(
+	function aggiornaGrafico30Giorni(
     data,
     canvasId,
     campo,
     colore,
-    sfondo
-){
+    sfondo,
+    infoId,
+    tipo,
+    unita
+	){
 
-    const feeds = data.feeds || [];
+		const feeds = data.feeds || [];
 
-    const labels = feeds.map(feed => {
+		const labels = feeds.map(feed => {
 
-        const d = new Date(feed.created_at);
+			const d = new Date(feed.created_at);
 
-        d.setDate(d.getDate() - 1);
+			d.setDate(d.getDate() - 1);
 
-        return d.toLocaleDateString("it-IT");
+			return d.toLocaleDateString("it-IT");
 
-    });
+		});
 
-    const valori = feeds.map(feed =>
-        parseFloat(feed[campo])
-    );
+		const valori = feeds.map(feed =>
+			parseFloat(feed[campo])
+		);
 
-    const canvas =
-        document.getElementById(canvasId);
+		const maxVal = Math.max(...valori);
+		const minVal = Math.min(...valori);
 
-    if(!canvas) return;
+		const indiceMax = valori.indexOf(maxVal);
+		const indiceMin = valori.indexOf(minVal);
 
-    const ctx = canvas.getContext("2d");
+		const dataMax = labels[indiceMax];
+		const dataMin = labels[indiceMin];
 
-    if(charts[canvasId]){
-        charts[canvasId].destroy();
-    }
+		const infoBox = document.getElementById(infoId);
 
-    charts[canvasId] = new Chart(ctx,{
-        type:"line",
-        data:{
-            labels:labels,
-            datasets:[{
-                data:valori,
-                borderColor:colore,
-                backgroundColor:sfondo,
-                borderWidth:2,
-                fill:true,
-                tension:0.3,
-                pointRadius:5,
-                pointHoverRadius:7
-            }]
-        },
-        options:{
-            responsive:true,
-            maintainAspectRatio:false,
+		if(infoBox){
 
-            plugins:{
-                legend:{
-                    display:false
-                }
-            },
+			let testoMax = "Massimo";
+			let testoMin = "Minimo";
 
-            scales:{
-                x:{
-                    ticks:{color:"white"},
-                    grid:{color:"#374151"}
-                },
-                y:{
-                    ticks:{color:"white"},
-                    grid:{color:"#374151"}
-                }
-            }
-        }
-    });
-}
+			if(tipo === "temperatura"){
+				testoMax = "Più caldo";
+				testoMin = "Più freddo";
+			}
 
-async function aggiornaTuttiIGrafici30Giorni(){
+			if(tipo === "umidita"){
+				testoMax = "Più umido";
+				testoMin = "Più secco";
+			}
 
-    const data =
-        await scaricaStorico30Giorni();
+			if(tipo === "pressione"){
+				testoMax = "Pressione più alta";
+				testoMin = "Pressione più bassa";
+			}
 
-    aggiornaGrafico30Giorni(
-        data,
-        "temp30Chart",
-        "field1",
-        "#ff5555",
-        "rgba(255,85,85,0.2)"
-    );
+			if(tipo === "voc"){
+				testoMax = "VOC più alto";
+				testoMin = "VOC più basso";
+			}
 
-    aggiornaGrafico30Giorni(
-        data,
-        "hum30Chart",
-        "field3",
-        "#6ee7a8",
-        "rgba(110,231,168,0.20)"
-    );
+			infoBox.innerHTML =
+				`${testoMax}: ${dataMax} (${maxVal.toFixed(1)}${unita})<br>
+				 ${testoMin}: ${dataMin} (${minVal.toFixed(1)}${unita})`;
+		}
 
-    aggiornaGrafico30Giorni(
-        data,
-        "press30Chart",
-        "field2",
-        "#60a5fa",
-        "rgba(96,165,250,0.20)"
-    );
+		const canvas =
+			document.getElementById(canvasId);
 
-    aggiornaGrafico30Giorni(
-        data,
-        "voc30Chart",
-        "field4",
-        "#f59e0b",
-        "rgba(245,158,11,0.20)"
-    );
-}
+		if(!canvas) return;
+
+		const ctx = canvas.getContext("2d");
+
+		if(charts[canvasId]){
+			charts[canvasId].destroy();
+		}
+
+		charts[canvasId] = new Chart(ctx,{
+			type:"line",
+			data:{
+				labels:labels,
+				datasets:[{
+					data:valori,
+					borderColor:colore,
+					backgroundColor:sfondo,
+					borderWidth:2,
+					fill:true,
+					tension:0.3,
+					pointRadius:5,
+					pointHoverRadius:7
+				}]
+			},
+			options:{
+				responsive:true,
+				maintainAspectRatio:false,
+
+				plugins:{
+					legend:{
+						display:false
+					}
+				},
+
+				scales:{
+					x:{
+						ticks:{color:"white"},
+						grid:{color:"#374151"}
+					},
+					y:{
+						ticks:{color:"white"},
+						grid:{color:"#374151"}
+					}
+				}
+			}
+		});
+
+	}
+	async function aggiornaTuttiIGrafici30Giorni(){
+
+		const data =
+			await scaricaStorico30Giorni();
+
+		aggiornaGrafico30Giorni(
+			data,
+			"temp30Chart",
+			"field1",
+			"#ff5555",
+			"rgba(255,85,85,0.2)",
+			"temp30Info",
+			"temperatura",
+			"°C"
+		);
+
+		aggiornaGrafico30Giorni(
+			data,
+			"hum30Chart",
+			"field3",
+			"#6ee7a8",
+			"rgba(110,231,168,0.20)",
+			"hum30Info",
+			"umidita",
+			"%"
+		);
+
+		aggiornaGrafico30Giorni(
+			data,
+			"press30Chart",
+			"field2",
+			"#60a5fa",
+			"rgba(96,165,250,0.20)",
+			"press30Info",
+			"pressione",
+			" hPa"
+		);
 
 
-aggiornaTuttiIGrafici30Giorni();
+		aggiornaGrafico30Giorni(
+			data,
+			"voc30Chart",
+			"field4",
+			"#f59e0b",
+			"rgba(245,158,11,0.20)",
+			"voc30Info",
+			"voc",
+			""
+		);
+	}
 
 
-</script>
+	aggiornaTuttiIGrafici30Giorni();
 
-</body>
-</html>
+
+	</script>
+
+	</body>
+	</html>
