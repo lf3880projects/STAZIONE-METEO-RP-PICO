@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>STAZIONE METEO RP PICO</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#111827;
+    color:white;
+}
+
+.header{
+    background:#1f2937;
+    padding:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:0 2px 10px rgba(0,0,0,0.4);
+}
+
+.title{
+    font-size:28px;
+    font-weight:bold;
+}
+
+.linkStorico{
+    color:#60a5fa;
+    text-decoration:none;
+    font-weight:bold;
+    font-size:18px;
+}
+
+.linkStorico:hover{
+    color:#93c5fd;
+    text-decoration:underline;
+}
+
+.online{
+    color:#00ff66;
+    font-weight:bold;
+}
+
+.offline{
+    color:#ff4040;
+    font-weight:bold;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+    padding:20px;
+}
+
+.card{
+    background:#1f2937;
+    border-radius:15px;
+    padding:20px;
+    text-align:center;
+    box-shadow:0 4px 15px rgba(0,0,0,0.3);
+}
+
+.icon{
+    font-size:42px;
+}
+
+.value{
+    font-size:42px;
+    font-weight:bold;
+    margin-top:10px;
+}
+
+.label{
+    color:#b0b8c5;
+    margin-top:8px;
+}
+
+.stats{
+    margin-top:15px;
+    font-size:14px;
+    color:#d1d5db;
+    border-top:1px solid #374151;
+    padding-top:10px;
+}
+
+.stats-label{
+    margin-top:4px;
+    font-size:11px;
+    color:#6b7280;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+}
+
+.footer{
+    text-align:center;
+    color:#9ca3af;
+    padding:20px;
+}
+
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+
+<div class="header">
+
+    <div class="title">
+        STAZIONE METEO RP PICO (Reggello, Fi)
+    </div>
+
+	<div style="display:flex; gap:20px; align-items:center;">
+
+    <a href="storico30.html" class="linkStorico">
+        📈 Storico ultimi 30 gg
+    </a>
+
+    <a href="analysis.html" class="linkStorico">
+        📊 Analisi
+    </a>
+
+	</div>
+	
+    <div style="text-align:right;">
+
+        <div id="statusDot" class="online">
+            ● ONLINE
+        </div>
+
+        <div id="lastUpdate"
+             style="font-size:12px;color:#b0b8c5;margin-top:4px;">
+            --
+        </div>
+		
+		<div id="gapInfo" class="gap-info">
+			✅ Nessun gap rilevato
+		</div>
+
+    </div>
+
+</div>
+
+<div class="grid">
+
+<div class="card" style="grid-column: span 2;">
+    <div class="icon">🌡</div>
+    <div id="temp" class="value">--</div>
+    <div class="label">Temperatura</div>
+
+    <div id="tempStats" class="stats">
+        ▼ -- ▲ -- AVG --
+    </div>
+
+    <div style="margin-top:15px;height:180px;">
+        <canvas id="tempChart"></canvas>
+    </div>
+</div>
+
+    <div class="card" style="grid-column: span 2;">
+        <div class="icon">💧</div>
+        <div id="hum" class="value">--</div>
+        <div class="label">Umidità</div>
+        <div id="humStats" class="stats">
+            ▼ -- ▲ -- AVG --
+        </div>
+		
+	<div style="margin-top:15px;height:180px;">
+        <canvas id="humChart"></canvas>
+    </div>	
+    </div>
+
+    <div class="card" style="grid-column: span 2;">
+        <div class="icon">🔵</div>
+        <div id="pres" class="value">--</div>
+        <div class="label">Pressione</div>
+        <div id="presStats" class="stats">
+            ▼ -- ▲ -- AVG --
+        </div>
+		
+	<div style="margin-top:15px;height:180px;">
+		<canvas id="presChart"></canvas>
+	</div>	
+    </div>
+
+    <div class="card" style="grid-column: span 2;">
+        <div class="icon">🧪</div>
+        <div id="voc" class="value">--</div>
+        <div class="label">VOC</div>
+        <div id="vocStats" class="stats">
+            ▼ -- ▲ -- AVG --
+        </div>
+		
+	<div style="margin-top:15px;height:180px;">
+		<canvas id="vocChart"></canvas>
+	</div>
+    </div>
+
+</div>
+
+
+<script>
+
+const channelID = "3482908";
+const readAPI = "808DSNFPXSLRV98F";
+
+const charts = {};
+
+async function scaricaDatiThingspeak(risultati = 300){
+
+    const url =
+        `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPI}&results=${risultati}`;
+
+    const response = await fetch(url);
+
+    return await response.json();
+}
+
+function analizzaGap(feed, sogliaMinuti = 20) {
+
+    let numeroGap = 0;
+    let gapMassimo = 0;
+
+    const oggi = new Date().toISOString().slice(0, 10);
+
+    const feedOggi = feed.filter(item =>
+        item.created_at.startsWith(oggi)
+    );
+
+    for (let i = 1; i < feedOggi.length; i++) {
+
+        const precedente = new Date(feedOggi[i - 1].created_at);
+        const corrente = new Date(feedOggi[i].created_at);
+
+        const deltaMinuti = (corrente - precedente) / 60000;
+
+        if (deltaMinuti > sogliaMinuti) {
+
+            numeroGap++;
+
+            if (deltaMinuti > gapMassimo) {
+                gapMassimo = deltaMinuti;
+            }
+        }
+    }
+
+    return {
+        numeroGap,
+        gapMassimo
+    };
+}
+
+function formattaDurata(minuti) {
+
+    const ore = Math.floor(minuti / 60);
+    const min = Math.round(minuti % 60);
+
+    if (ore === 0) {
+        return `${min} min`;
+    }
+
+    return `${ore}h ${min}m`;
+}
+
+function getTrendArrow(diff, soglia){
+
+    if(diff > soglia){
+        return '<span style="color:#00ff66;">↗</span>';
+    }
+
+    if(diff < -soglia){
+        return '<span style="color:#ff5555;">↘</span>';
+    }
+
+    return '<span style="color:#d1d5db;">→</span>';
+}
+
+
+function aggiornaGrafico(data, canvasId, campo, colore){
+
+    try{
+
+        const oggi = new Date();
+
+        const feedsOggi = data.feeds.filter(feed => {
+
+            const d = new Date(feed.created_at);
+
+            return (
+                d.getDate() === oggi.getDate() &&
+                d.getMonth() === oggi.getMonth() &&
+                d.getFullYear() === oggi.getFullYear()
+            );
+        });
+
+        const labels = feedsOggi.map(f =>
+            new Date(f.created_at).toLocaleTimeString("it-IT",{
+                hour:"2-digit",
+                minute:"2-digit"
+            })
+        );
+
+        const valori = feedsOggi.map(f =>
+            Number(f[campo])
+        );
+
+        if(charts[canvasId]){
+            charts[canvasId].destroy();
+        }
+
+        charts[canvasId] = new Chart(
+            document.getElementById(canvasId),
+            {
+                type:"line",
+                data:{
+                    labels:labels,
+                    datasets:[{
+                        data:valori,
+                        borderColor:colore,
+                        backgroundColor:"rgba(79,195,247,0.2)",
+                        tension:0.3
+                    }]
+                },
+                options:{
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    plugins:{
+                        legend:{
+                            display:false
+                        }
+                    }
+                }
+            }
+        );
+
+    }catch(err){
+        console.log(err);
+    }
+}
+
+function aggiornaTuttiIGrafici(data){
+
+    aggiornaGrafico(data,"tempChart","field1","#4fc3f7");
+    aggiornaGrafico(data,"humChart","field3","#68d391");
+    aggiornaGrafico(data,"presChart","field2","#4fc3f7");
+    aggiornaGrafico(data,"vocChart","field4","#4fc3f7");
+	
+}
+
+function calcolaTrend(data){
+
+    try{
+		// Temperatura confronto con 1 ora prima, 0.5°C soglia
+		// Pressione con 3 ore prima, 1hPa soglia
+		// Umidità confronto con 1 ora prima, 5% soglia
+		// VOC confronto con 1 ora prima, 5punti soglia
+        
+        const feeds = data.feeds;
+
+        if(feeds.length < 15) return;
+
+        const ultimo = feeds[feeds.length-1];
+
+        const oraFa = feeds[Math.max(0, feeds.length-13)];
+
+        const trendTemp =
+            getTrendArrow(
+                parseFloat(ultimo.field1) -
+                parseFloat(oraFa.field1),
+                0.5
+            );
+
+        const trendHum =
+            getTrendArrow(
+                parseFloat(ultimo.field3) -
+                parseFloat(oraFa.field3),
+               5
+            );
+
+        const trendVoc =
+            getTrendArrow(
+                parseFloat(ultimo.field4) -
+                parseFloat(oraFa.field4),
+                5
+            );
+
+        document.getElementById("temp").innerHTML =
+            Number(ultimo.field1).toFixed(1) +
+            " °C " + trendTemp;
+
+        document.getElementById("hum").innerHTML =
+            Number(ultimo.field3).toFixed(0) +
+            " % " + trendHum;
+
+        document.getElementById("voc").innerHTML =
+            Number(ultimo.field4).toFixed(0) +
+            " " + trendVoc;
+
+        let trendPres = "→";
+
+        if(feeds.length > 37){
+
+            const treOreFa =
+                feeds[feeds.length-37];
+
+            trendPres =
+                getTrendArrow(
+                    parseFloat(ultimo.field2) -
+                    parseFloat(treOreFa.field2),
+                    1
+                );
+        }
+
+        document.getElementById("pres").innerHTML =
+            Number(ultimo.field2).toFixed(0) +
+            " hPa " + trendPres;
+
+    }catch(err){
+        console.log(err);
+    }
+}
+
+async function aggiornaDati() {
+
+    try {
+
+        const url =
+        `https://api.thingspeak.com/channels/${channelID}/feeds/last.json?api_key=${readAPI}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        // valori aggiornati da calcolaTrend()
+
+        document.getElementById("lastUpdate").innerHTML =
+            new Date(data.created_at).toLocaleString("it-IT");
+
+        verificaOnline(data.created_at);
+
+    } catch(err){
+
+        document.getElementById("statusDot").innerHTML =
+            "● OFFLINE";
+
+        document.getElementById("statusDot").className =
+            "offline";
+    }
+}
+
+function verificaOnline(timestamp){
+
+    const ultimo = new Date(timestamp);
+    const adesso = new Date();
+
+    const minuti =
+        (adesso - ultimo) / 60000;
+
+    if(minuti <= 10){
+
+        document.getElementById("statusDot").innerHTML =
+            "● ONLINE";
+
+        document.getElementById("statusDot").className =
+            "online";
+
+    } else {
+
+        document.getElementById("statusDot").innerHTML =
+            "● OFFLINE";
+
+        document.getElementById("statusDot").className =
+            "offline";
+    }
+}
+
+function aggiornaStatistiche(data){
+
+    try{
+
+        const oggi = new Date();
+
+        const feedsOggi = data.feeds.filter(feed => {
+
+            const d = new Date(feed.created_at);
+
+            return (
+                d.getDate() === oggi.getDate() &&
+                d.getMonth() === oggi.getMonth() &&
+                d.getFullYear() === oggi.getFullYear()
+            );
+        });
+
+        calcolaStats(feedsOggi,"field1","tempStats"," °C",1);
+        calcolaStats(feedsOggi,"field2","presStats","",0);
+        calcolaStats(feedsOggi,"field3","humStats","",0);
+        calcolaStats(feedsOggi,"field4","vocStats","",0);
+
+    } catch(err){
+        console.log(err);
+    }
+}
+
+function calcolaStats(feeds,campo,idElemento,unita,decimali){
+
+    const valori = feeds
+        .map(f => parseFloat(f[campo]))
+        .filter(v => !isNaN(v));
+
+    if(valori.length === 0)
+        return;
+
+    const min = Math.min(...valori);
+    const max = Math.max(...valori);
+
+    const avg =
+        valori.reduce((a,b)=>a+b,0) /
+        valori.length;
+
+    document.getElementById(idElemento).innerHTML =
+		`▼ ${min.toFixed(decimali)}${unita}
+		&nbsp;&nbsp;
+		▲ ${max.toFixed(decimali)}${unita}
+		&nbsp;&nbsp;
+		AVG ${avg.toFixed(decimali)}${unita}
+		<div class="stats-label">Giorno corrente</div>`;
+}
+
+async function aggiornaDashboard(){
+
+    try{
+
+        const data =
+            await scaricaDatiThingspeak(300);
+		const gap = analizzaGap(data.feeds);
+
+		const gapInfo = document.getElementById("gapInfo");
+
+		if (gap.numeroGap === 0) {
+
+			gapInfo.innerHTML =
+				"✅ Nessun gap oggi";
+
+		} else {
+
+			gapInfo.innerHTML =
+				`⚠ Gap oggi: ${gap.numeroGap} (max ${formattaDurata(gap.gapMassimo)})`;
+		}
+        calcolaTrend(data);
+
+        aggiornaStatistiche(data);
+
+        aggiornaTuttiIGrafici(data);
+
+    }catch(err){
+
+        console.log(err);
+
+    }
+}
+
+aggiornaDati();
+setInterval(aggiornaDati,15000);
+
+aggiornaDashboard();
+
+setInterval(aggiornaDashboard,300000);
+
+
+
+
+</script>
+
+</body>
+</html>

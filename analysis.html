@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>STAZIONE METEO RP PICO - Analisi Storica</title>
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+<style>
+
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#111827;
+    color:white;
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:15px 20px;
+    background:#1f2937;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+}
+
+.title{
+    font-size:1.5em;
+    font-weight:bold;
+}
+
+.linkStorico{
+    color:#60a5fa;
+    text-decoration:none;
+    font-weight:bold;
+}
+
+.linkStorico:hover{
+    text-decoration:underline;
+}
+
+.main{
+    padding:20px;
+}
+
+.card{
+    background:#1f2937;
+    border-radius:15px;
+    padding:20px;
+    margin-bottom:25px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.3);
+}
+
+.card h2{
+    margin-top:0;
+    text-align:center;
+}
+
+#status{
+    text-align:center;
+    margin-bottom:20px;
+    color:#b0b8c5;
+}
+
+.filtroPeriodo{
+    text-align:center;
+    margin:15px 0 25px 0;
+}
+
+.filtroPeriodo button{
+    background:#374151;
+    color:white;
+    border:none;
+    padding:10px 16px;
+    margin:4px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+}
+
+.filtroPeriodo button:hover{
+    background:#4b5563;
+}
+
+#graficoTemp,
+#graficoPress,
+#graficoUmid,
+#graficoVOC{
+    width:100%;
+    height:700px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+
+    <div class="title">
+        STAZIONE METEO RP PICO
+    </div>
+
+    <a href="index.html" class="linkStorico">
+        🏠 Dashboard principale
+    </a>
+
+</div>
+
+<div class="main">
+
+    <div class="card">
+
+        <h2>🌡 Analisi Storica Temperatura</h2>
+
+		<div id="status">
+			Caricamento dati...
+		</div>
+
+		<div class="filtroPeriodo">
+
+			<button onclick="giorniDaMostrare = 7; aggiornaGrafici();">
+				7 giorni
+			</button>
+
+			<button onclick="giorniDaMostrare = 30; aggiornaGrafici();">
+				30 giorni
+			</button>
+
+			<button onclick="giorniDaMostrare = 90; aggiornaGrafici();">
+				90 giorni
+			</button>
+
+			<button onclick="giorniDaMostrare = 9999; aggiornaGrafici();">
+				Tutto
+			</button>
+
+		</div>
+
+		<div id="graficoTemp"></div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>🌤 Analisi Storica Pressione</h2>
+
+        <div id="graficoPress"></div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>💧 Analisi Storica Umidità</h2>
+
+        <div id="graficoUmid"></div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>🌿 Analisi Storica VOC</h2>
+
+        <div id="graficoVOC"></div>
+
+    </div>
+
+</div>
+
+<script>
+
+const CHANNEL_ID = 3482908;
+const READ_API_KEY = "808DSNFPXSLRV98F";
+
+const DATA_MINIMA = new Date("2026-01-01");
+
+// filtro iniziale
+let giorniDaMostrare = 30;
+let datiTemp = {};
+let datiPress = {};
+let datiUmid = {};
+let datiVOC = {};
+
+function creaBoxPlot(
+    divId,
+    giorni,
+    titolo,
+    colore,
+    asseY
+){
+
+	const traces = [];
+
+	const giorniFiltrati =
+		Object.keys(giorni)
+			.sort()
+			.slice(-giorniDaMostrare);
+
+	giorniFiltrati.forEach(giorno => {
+
+		if(giorni[giorno].length === 0) return;
+
+		const parti = giorno.split("-");
+
+		traces.push({
+			y: giorni[giorno],
+			type: "box",
+			name: parti[2] + "/" + parti[1],
+			boxpoints: "outliers",
+			marker:{
+				color: colore
+			}
+		});
+
+	});
+
+    Plotly.newPlot(
+        divId,
+        traces,
+        {
+            title: titolo,
+
+            paper_bgcolor:"#1f2937",
+            plot_bgcolor:"#111827",
+
+            font:{
+                color:"white"
+            },
+
+            xaxis:{
+                title:"Giorno",
+                type:"category",
+                gridcolor:"#374151"
+            },
+
+            yaxis:{
+                title:asseY,
+                gridcolor:"#374151"
+            },
+
+            showlegend:false
+        },
+        {
+            responsive:true
+        }
+    );
+}
+
+function aggiornaGrafici() {
+
+    creaBoxPlot(
+        "graficoTemp",
+        datiTemp,
+        "Distribuzione giornaliera della temperatura",
+        "#4da3ff",
+        "Temperatura (°C)"
+    );
+
+    creaBoxPlot(
+        "graficoPress",
+        datiPress,
+        "Distribuzione giornaliera della pressione",
+        "#f59e0b",
+        "Pressione (hPa)"
+    );
+
+    creaBoxPlot(
+        "graficoUmid",
+        datiUmid,
+        "Distribuzione giornaliera dell'umidità",
+        "#10b981",
+        "Umidità (%)"
+    );
+
+    creaBoxPlot(
+        "graficoVOC",
+        datiVOC,
+        "Distribuzione giornaliera VOC",
+        "#a855f7",
+        "VOC (MQ135)"
+    );
+
+    const totali = Object.keys(datiTemp).length;
+
+    const visualizzati =
+        Math.min(totali, giorniDaMostrare);
+
+    document.getElementById("status").innerHTML =
+        `Visualizzati ${visualizzati} giorni su ${totali}`;
+}
+
+async function caricaDati(){
+
+    try{
+
+        const url =
+            `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${READ_API_KEY}&results=8000`;
+
+        const response = await fetch(url);
+
+        if(!response.ok){
+            throw new Error("Errore HTTP " + response.status);
+        }
+
+        const data = await response.json();
+
+        if(!data.feeds || !Array.isArray(data.feeds)){
+            throw new Error("Risposta ThingSpeak non valida");
+        }
+
+		datiTemp = {};
+		datiPress = {};
+		datiUmid = {};
+		datiVOC = {};
+
+        data.feeds.forEach(feed => {
+
+            const temp = parseFloat(feed.field1);
+            const pres = parseFloat(feed.field2);
+            const umid = parseFloat(feed.field3);
+            const voc  = parseFloat(feed.field4);
+
+            const d = new Date(feed.created_at);
+
+            if(d < DATA_MINIMA) return;
+
+            const key =
+                d.getFullYear() + "-" +
+                String(d.getMonth()+1).padStart(2,"0") + "-" +
+                String(d.getDate()).padStart(2,"0");
+
+            if(!datiTemp[key]){
+                datiTemp[key]  = [];
+                datiPress[key] = [];
+                datiUmid[key]  = [];
+                datiVOC[key]   = [];
+            }
+
+            if(!isNaN(temp)) datiTemp[key].push(temp);
+            if(!isNaN(pres)) datiPress[key].push(pres);
+            if(!isNaN(umid)) datiUmid[key].push(umid);
+            if(!isNaN(voc))  datiVOC[key].push(voc);
+
+        });
+
+		aggiornaGrafici();
+
+		const totali = Object.keys(datiTemp).length;
+
+		const visualizzati =
+			Math.min(totali, giorniDaMostrare);
+
+		document.getElementById("status").innerHTML =
+			`Visualizzati ${visualizzati} giorni su ${totali}`;
+
+    }
+    catch(err){
+
+        document.getElementById("status").innerHTML =
+            "Errore: " + err.message;
+
+        console.error(err);
+
+    }
+
+}
+
+caricaDati();
+
+</script>
+
+</body>
+</html>
